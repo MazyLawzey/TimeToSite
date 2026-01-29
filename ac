@@ -1,0 +1,70 @@
+import webbrowser
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+# Set up the Chrome driver automatically
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+
+def setup():
+    timeleft = input("Во сколько открыть URL? (в формате ЧЧ:ММ) ")
+    url = "http://localhost:3000"
+    bootstrap(timeleft)
+    return url
+
+def bootstrap(timeleft):
+    try:
+        time_struct = time.strptime(timeleft, "%H:%M")
+        now = time.localtime()
+        target_time = time.mktime((
+            now.tm_year, now.tm_mon, now.tm_mday,
+            time_struct.tm_hour, time_struct.tm_min, 0,
+            now.tm_wday, now.tm_yday, now.tm_isdst
+        ))
+        if target_time < time.mktime(now):
+            target_time += 86400
+        wait_seconds = target_time - time.mktime(now)
+        while wait_seconds > 0:
+            mins, secs = divmod(int(wait_seconds), 60)
+            hours, mins = divmod(mins, 60)
+            print(f"Открытие через {hours:02}:{mins:02}:{secs:02}", end='\r')
+            time.sleep(1)
+            wait_seconds -= 1
+        print("\nВремя ожидания истекло. Открываем URL...")
+    except ValueError:
+        print("Некорректный ввод времени. Открываем URL сразу.")
+
+
+def after_connection():
+    try:
+        # Ожидание появления кнопки с ID "testButton"
+        button = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "testButton"))
+        )
+        button.click()
+        print("Кнопка нажата успешно.")
+    except Exception as e:
+        print(f"Ошибка при нажатии кнопки: {e}")
+
+
+def main():
+    url = setup()
+    try:
+        print(f"Открываем URL: {url}")
+        driver.get(url)
+        after_connection()
+    except Exception as e:
+        print(f"Ошибка при открытии URL или взаимодействии с элементами: {e}")
+
+main()
+
+try:
+    while True:
+        pass
+except KeyboardInterrupt:
+    print("\nScript stopped by user.")
+    driver.quit()
